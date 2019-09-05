@@ -7,6 +7,7 @@ description = "A library to build PHP extensions in Rust."
 license = "MIT"
 repository = "https://github.com/rethinkphp/php-rs"
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 libc = "0.2.0"

@@ -11,7 +11,10 @@ pub fn print_table_row(values: &[&str]) {
     let nargs = values.len() as i32;
 
     if nargs != 2 {
-        unimplemented!();
+        unsafe {
+            php_info_print_table_row(0);
+        }
+        return;
     }
 
     let v1 = CString::new(values[0]).unwrap();
