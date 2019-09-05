@@ -13,6 +13,7 @@ pub union ZendValue {
 	pub long_value: c_long,
 	pub double_value: c_double,
 	pub string: *mut ZendString,
+	pub array: *mut ZendArray,
 }
 
 #[repr(C)]
@@ -46,35 +47,118 @@ pub struct Zval {
 	pub u2: U2,
 }
 
-fn zend_string(max_len: libc::size_t, format: &str) -> *mut ZendString {
-	let c_format = CString::new(format).unwrap();
-	unsafe {
-		strpprintf(max_len, c_format.as_bytes_with_nul().as_ptr() as *const i8)
-	}
+#[repr(C)]
+pub struct Bucket {
+	value: Zval,
+	hash: u64,
+	key: *mut ZendString,
 }
 
-impl From<&str> for ZendValue {
-	fn from(rust_str: &str) -> Self {
-		ZendValue {
-			string: zend_string(rust_str.len(), rust_str),
+#[repr(C)]
+struct DtorFunc {}
+
+#[repr(C)]
+pub struct ZendArray {
+	gc: ZendRefCounted,
+	n_table_mask: u32,
+	array_data: *mut Bucket,
+	n_num_used: u32,
+	n_num_of_elements: u32,
+	n_table_size: u32,
+	n_internal_pointer: u32,
+	n_next_free_element: u64,
+	p_destructor: DtorFunc,
+}
+
+
+impl ZendString {
+	pub fn new_as_pointer(rust_str: &str) -> *mut ZendString {
+		let c_format = CString::new(rust_str).unwrap();
+		unsafe {
+			strpprintf(rust_str.len(), c_format.as_bytes_with_nul().as_ptr() as *const i8)
 		}
 	}
 }
 
-pub trait IntoZval {
-	fn into_zval(self, zval: &mut Zval);
-}
+impl ZendArray {
+	pub fn new_in_zval(zval: &mut Zval) {
+		unsafe {
+			_array_init(zval, 0);
+		}
+	}
 
-impl IntoZval for &str {
-	fn into_zval(self, zval: &mut Zval) {
-		(*zval).u1.type_info = 6;
-		(*zval).value = ZendValue::from(self);
+	pub fn add_value(array: &mut Zval, key: &mut Zval, value: &mut Zval) {
+		unsafe {
+			array_set_zval_key((*array).value.array, key, value);
+		}
 	}
 }
 
-impl IntoZval for i64 {
-	fn into_zval(self, zval: &mut Zval) {
-		(*zval).u1.type_info = 4;
-		(*zval).value.long_value = self;
+impl Zval {
+	pub fn new<T>(t: T) -> Self
+		where Zval: From<T>
+	{
+		Zval::from(t)
+	}
+}
+
+impl From<&str> for Zval {
+	fn from(rust_str: &str) -> Self {
+		Zval {
+			value: ZendValue{string: ZendString::new_as_pointer(rust_str)},
+			u1: U1{type_info: 6},
+			u2: U2{next: 0}
+		}
+	}
+}
+
+impl From<i64> for Zval {
+	fn from(number: i64) -> Self {
+		Zval {
+			value: ZendValue{long_value: number},
+			u1: U1{type_info: 4},
+			u2: U2{next: 0}
+		}
+	}
+}
+
+impl From<i32> for Zval {
+	fn from(number: i32) -> Self {
+		Zval {
+			value: ZendValue{long_value: number as i64},
+			u1: U1{type_info: 4},
+			u2: U2{next: 0}
+		}
+	}
+}
+
+impl From<usize> for Zval {
+	fn from(size: usize) -> Self {
+		Zval {
+			value: ZendValue{long_value: size as i64},
+			u1: U1{type_info: 4},
+			u2: U2{next: 0}
+		}
+	}
+}
+
+impl<T: Clone> From<Vec<T>> for Zval
+	where Zval: From<T>
+{
+	fn from(vector: Vec<T>) -> Self {
+		let mut returner = Zval{
+			value: ZendValue{long_value: 0},
+			u1: U1{type_info: 7},
+			u2: U2{next: 0}
+		};
+		ZendArray::new_in_zval(&mut returner);
+		for (index, value) in vector.into_iter().enumerate() {
+			ZendArray::add_value(
+				&mut returner,
+				&mut Zval::new::<usize>(index),
+				&mut Zval::new(value.clone())
+			);
+		}
+		returner
 	}
 }
