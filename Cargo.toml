@@ -1,11 +1,11 @@
 [package]
-name = "php-rs"
+name = "solder"
 version = "0.1.0"
-authors = ["Jin Hu <bixuehujin@gmail.com>"]
+authors = ["Bruno Clemente <bruno.canguru@hotmail.com>"]
 keywords = ["php", "php-extension"]
 description = "A library to build PHP extensions in Rust."
 license = "MIT"
-repository = "https://github.com/rethinkphp/php-rs"
+repository = "https://github.com/killertux/solder"
 edition = "2018"
 build = "build.rs"
 

@@ -9,12 +9,26 @@ extern "C" {
     pub fn php_printf(format: *const c_char , ...) -> size_t;
 }
 
-#[cfg(feature = "zend_strpprintf")]
+#[cfg(feature = "php72")]
 extern "C" {
-    pub fn zend_strpprintf(max_len: size_t, format: *const c_char) -> *mut ZendString;
+    fn zend_strpprintf(max_len: size_t, format: * const c_char) -> * mut ZendString;
 }
 
-#[cfg(not(feature = "zend_strpprintf"))]
+#[cfg(feature = "php72")]
+pub fn create_zend_string(size: size_t, string: *const c_char) -> * mut ZendString {
+    unsafe {
+        zend_strpprintf(size, string)
+    }
+}
+
+#[cfg(not(feature = "php72"))]
 extern "C" {
-    pub fn strpprintf(max_len: size_t, format: *const c_char) -> *mut ZendString;
+    fn strpprintf(max_len: size_t, format: *const c_char) -> *mut ZendString;
+}
+
+#[cfg(not(feature = "php72"))]
+pub fn create_zend_string(size: size_t, string: *const c_char) -> * mut ZendString {
+    unsafe {
+        strpprintf(size, string)
+    }
 }

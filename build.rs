@@ -34,7 +34,7 @@ fn execute_command(command: &str, error_message: &str) -> String {
 }
 
 fn set_version_features(api_version: String) {
-    if api_version.parse().unwrap() >= 20170718 {
-        println!("cargo:rustc-cfg=feature=zend_strpprintf");
+    if api_version.trim().parse::<i64>().unwrap() >= 20170718 {
+        println!("cargo:rustc-cfg=feature=\"php72\"");
     }
 }

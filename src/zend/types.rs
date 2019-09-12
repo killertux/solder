@@ -74,9 +74,7 @@ pub struct ZendArray {
 impl ZendString {
 	pub fn new_as_pointer(rust_str: &str) -> *mut ZendString {
 		let c_format = CString::new(rust_str).unwrap();
-		unsafe {
-			strpprintf(rust_str.len(), c_format.as_bytes_with_nul().as_ptr() as *const i8)
-		}
+		create_zend_string(rust_str.len(), c_format.as_bytes_with_nul().as_ptr() as *const i8)
 	}
 }
 
