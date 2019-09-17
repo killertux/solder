@@ -1,6 +1,6 @@
 use libc::*;
 use std::ffi::CString;
-use super::zend_methods::*;
+use super::internal_php_methods::*;
 use std::os::raw::c_void;
 
 pub struct ExecuteData {}
@@ -14,6 +14,7 @@ pub union ZendValue {
 	pub double_value: c_double,
 	pub string: *mut ZendString,
 	pub array: *mut ZendArray,
+	pub zval: *mut Zval,
 }
 
 #[repr(C)]
@@ -24,6 +25,13 @@ pub union U1 {
 #[repr(C)]
 pub union U2 {
 	pub next: u32,
+}
+
+#[repr(C)]
+pub struct Zval {
+	pub value: ZendValue,
+	pub u1: U1,
+	pub u2: U2,
 }
 
 #[repr(C)]
@@ -38,13 +46,6 @@ pub struct ZendString {
 	pub hash: u32,
 	pub len: libc::size_t,
 	pub value: *mut libc::c_char,
-}
-
-#[repr(C)]
-pub struct Zval {
-	pub value: ZendValue,
-	pub u1: U1,
-	pub u2: U2,
 }
 
 #[repr(C)]
@@ -130,6 +131,16 @@ impl From<i32> for Zval {
 	}
 }
 
+impl From<u32> for Zval {
+	fn from(number: u32) -> Self {
+		Zval {
+			value: ZendValue{long_value: number as i64},
+			u1: U1{type_info: 0},
+			u2: U2{next: 0}
+		}
+	}
+}
+
 impl From<usize> for Zval {
 	fn from(size: usize) -> Self {
 		Zval {
@@ -139,6 +150,12 @@ impl From<usize> for Zval {
 		}
 	}
 }
+
+/*impl From<Zval> for Zval {
+	fn from(zval: Zval) -> Self {
+		zval
+	}
+}*/
 
 impl<T: Clone> From<Vec<T>> for Zval
 	where Zval: From<T>
@@ -158,5 +175,13 @@ impl<T: Clone> From<Vec<T>> for Zval
 			);
 		}
 		returner
+	}
+}
+
+impl From<Zval> for i64 {
+	fn from(zval: Zval) -> Self {
+		unsafe {
+			zval.value.long_value
+		}
 	}
 }

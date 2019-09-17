@@ -12,12 +12,3 @@ macro_rules! php_return {
         (*$retval) = Zval::new($value);
     };
 }
-
-#[macro_export]
-macro_rules! php_get_parameters {
-    ($($args:tt)*) => {{
-        unsafe {
-            zend_parse_parameters($n, $v_type, $value);
-        }
-    }};
-}

@@ -1,6 +1,8 @@
 pub use self::module::*;
 pub use self::types::*;
+pub use self::methods::*;
 
 mod module;
 mod types;
-mod zend_methods;
+mod internal_php_methods;
+mod methods;
