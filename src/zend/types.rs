@@ -81,9 +81,7 @@ impl ZendString {
 
 impl ZendArray {
 	pub fn new_in_zval(zval: &mut Zval) {
-		unsafe {
-			_array_init(zval, 0);
-		}
+		create_zend_array(zval);
 	}
 
 	pub fn add_value(array: &mut Zval, key: &mut Zval, value: &mut Zval) {

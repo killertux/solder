@@ -37,4 +37,7 @@ fn set_version_features(api_version: String) {
     if api_version.trim().parse::<i64>().unwrap() >= 20170718 {
         println!("cargo:rustc-cfg=feature=\"php72\"");
     }
+    if api_version.trim().parse::<i64>().unwrap() >= 20180731 {
+        println!("cargo:rustc-cfg=feature=\"php73\"");
+    }
 }
