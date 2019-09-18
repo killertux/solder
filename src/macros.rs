@@ -12,3 +12,13 @@ macro_rules! php_return {
         (*$retval) = Zval::new($value);
     };
 }
+
+#[macro_export]
+macro_rules! php_parse_parameters {
+	($p1:expr) => {
+		[$p1].parse_parameters();
+	};
+	($p1:expr, $($rest:expr), *) => {
+		[$p1, $($rest), *].parse_parameters();
+	}
+}

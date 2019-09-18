@@ -10,8 +10,8 @@ pub struct ModuleDep {}
 //https://github.com/php/php-src/blob/d0754b86b1cb4774c4af64498641ddaaab745418/Zend/zend_types.h#L176-L233
 #[repr(C)]
 pub union ZendValue {
-	pub long_value: c_long,
-	pub double_value: c_double,
+	pub long_value: i64,
+	pub double_value: f64,
 	pub string: *mut ZendString,
 	pub array: *mut ZendArray,
 	pub zval: *mut Zval,
@@ -148,12 +148,6 @@ impl From<usize> for Zval {
 		}
 	}
 }
-
-/*impl From<Zval> for Zval {
-	fn from(zval: Zval) -> Self {
-		zval
-	}
-}*/
 
 impl<T: Clone> From<Vec<T>> for Zval
 	where Zval: From<T>
