@@ -1,8 +1,6 @@
-use libc::*;
 use std::ffi::{CString, CStr};
 use std::slice;
 use super::internal_php_methods::*;
-use super::methods::*;
 use std::os::raw::c_void;
 use std::ptr::null;
 
@@ -12,7 +10,7 @@ pub struct ModuleDep {}
 // Zend Types and Zval
 //https://github.com/php/php-src/blob/d0754b86b1cb4774c4af64498641ddaaab745418/Zend/zend_types.h#L176-L233
 
-enum InternalPhpTypes {
+pub enum InternalPhpTypes {
 	UNDEF = 0,
 	NULL = 1,
 	FALSE = 2,
@@ -21,9 +19,6 @@ enum InternalPhpTypes {
 	DOUBLE = 5,
 	STRING = 6,
 	ARRAY = 7,
-	OBJECT = 8,
-	RESOURCE = 9,
-	REFERENCE = 10,
 }
 
 #[repr(C)]
@@ -68,7 +63,7 @@ pub struct Bucket {
 }
 
 #[repr(C)]
-struct DtorFunc {}
+struct DtorFunc {void: *mut c_void}
 
 #[repr(C)]
 pub struct ZendArray {

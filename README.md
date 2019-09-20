@@ -59,7 +59,20 @@ rustflags = ["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]
 
 Than, you compile the extension using `cargo build` and load it copying it to your PHP modules dir and modifying you `php.ini`.
 
+```
+$ cargo build && php -dextension=/src/examples/helloworld/target/debug/libhelloworld.so -a
+   Compiling solder v0.1.0 (/src)
+   Compiling helloworld v0.1.0 (/src/examples/helloworld)
+    Finished dev [unoptimized + debuginfo] target(s) in 5.93s
+ Interactive shell
+
+php > var_dump(hello_world("Bruno"));
+string(11) "Hello Bruno"
+php >
+```
+
+### PHP Versions
 For now, this crate only works with PHP7.
-During the build, it tries to get the PHP API VERSION and PHP EXTENSION BUILD from the installed PHP. But, you can compile for other versions by manually setting the envs PHP_API_VERSION and PHP_EXTENSION_BUILD.
+During the build, it tries to get the PHP API VERSION and PHP EXTENSION BUILD from the installed PHP. But, you can compile for other versions by manually setting the envs PHP_API_VERSION and PHP_EXTENSION_BUILD
 
 If you have questions or ideas to the project. Feel free to contact me.

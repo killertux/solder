@@ -2,7 +2,6 @@ use super::internal_php_methods::*;
 use super::types::*;
 use std::ffi::CString;
 use libc::*;
-use std::ptr::null;
 
 /// As the name suggests, this method is acts like a PHP echo
 /// ```
@@ -45,7 +44,7 @@ pub trait PhpParseParameters {
 
 impl PhpParseParameters for [&mut Zval; 1] {
     fn parse_parameters(self: &mut Self) {
-        let mut value_1 = ZendValue{long_value: 0};
+        let value_1 = ZendValue{long_value: 0};
         unsafe {
             zend_parse_parameters(
                 1,
@@ -59,8 +58,8 @@ impl PhpParseParameters for [&mut Zval; 1] {
 
 impl PhpParseParameters for [&mut Zval; 2] {
     fn parse_parameters(self: &mut Self) {
-        let mut value_1 = ZendValue{long_value: 0};
-        let mut value_2 = ZendValue{long_value: 0};
+        let value_1 = ZendValue{long_value: 0};
+        let value_2 = ZendValue{long_value: 0};
         unsafe {
             zend_parse_parameters(
                 2,
@@ -76,9 +75,9 @@ impl PhpParseParameters for [&mut Zval; 2] {
 
 impl PhpParseParameters for [&mut Zval; 3] {
     fn parse_parameters(self: &mut Self) {
-        let mut value_1 = ZendValue{long_value: 0};
-        let mut value_2 = ZendValue{long_value: 0};
-        let mut value_3 = ZendValue{long_value: 0};
+        let value_1 = ZendValue{long_value: 0};
+        let value_2 = ZendValue{long_value: 0};
+        let value_3 = ZendValue{long_value: 0};
         unsafe {
             zend_parse_parameters(
                 3,
@@ -96,10 +95,10 @@ impl PhpParseParameters for [&mut Zval; 3] {
 
 impl PhpParseParameters for [&mut Zval; 4] {
     fn parse_parameters(self: &mut Self) {
-        let mut value_1 = ZendValue{long_value: 0};
-        let mut value_2 = ZendValue{long_value: 0};
-        let mut value_3 = ZendValue{long_value: 0};
-        let mut value_4 = ZendValue{long_value: 0};
+        let value_1 = ZendValue{long_value: 0};
+        let value_2 = ZendValue{long_value: 0};
+        let value_3 = ZendValue{long_value: 0};
+        let value_4 = ZendValue{long_value: 0};
         unsafe {
             zend_parse_parameters(
                 4,
@@ -119,11 +118,11 @@ impl PhpParseParameters for [&mut Zval; 4] {
 
 impl PhpParseParameters for [&mut Zval; 5] {
     fn parse_parameters(self: &mut Self) {
-        let mut value_1 = ZendValue{long_value: 0};
-        let mut value_2 = ZendValue{long_value: 0};
-        let mut value_3 = ZendValue{long_value: 0};
-        let mut value_4 = ZendValue{long_value: 0};
-        let mut value_5 = ZendValue{long_value: 0};
+        let value_1 = ZendValue{long_value: 0};
+        let value_2 = ZendValue{long_value: 0};
+        let value_3 = ZendValue{long_value: 0};
+        let value_4 = ZendValue{long_value: 0};
+        let value_5 = ZendValue{long_value: 0};
         unsafe {
             zend_parse_parameters(
                 5,
