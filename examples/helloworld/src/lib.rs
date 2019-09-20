@@ -15,18 +15,18 @@ pub extern fn php_module_info() {
 
 #[no_mangle]
 pub extern fn get_module() -> *mut zend::Module {
-    let mut entry = Box::new(zend::Module::new(
-        c_str!("hello_world"),
-        c_str!("0.1.0-dev"),
-    ));
-
-    entry.set_info_func(php_module_info);
-
-    let args = Box::new([ArgInfo::new(c_str!("name"), 0, 0, 0)]);
-    let funcs = Box::new([Function::new_with_args(c_str!("hello_world"), hello_world, args), Function::end(), ]);
-    entry.set_functions(funcs);
-
-    Box::into_raw(entry)
+    let entry = Module::new(c_str!("hello_world"), c_str!("0.1.0-dev"))
+        .set_info_func(php_module_info)
+        .set_functions(
+            Box::new([
+                Function::new_with_args(
+                    c_str!("hello_world"),
+                    hello_world,
+                    Box::new([ArgInfo::new(c_str!("name"), 0, 0, 0)])
+                ),
+                Function::end()
+            ]));
+    Box::into_raw(Box::new(entry))
 }
 
 

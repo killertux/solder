@@ -14,17 +14,17 @@ type HandlerFunc = extern fn (execute_data: &ExecuteData, retval: &mut Zval);
 
 #[repr(C)]
 pub struct ArgInfo {
-	name: *const c_char,
-	class_name: *const c_char,
-	type_hint: c_uchar,
-	pass_by_reference: c_uchar,
-	allow_null: c_uchar,
-	is_variadic: c_uchar,
+	name: *const u8,
+	class_name: *const u8,
+	type_hint: u8,
+	pass_by_reference: u8,
+	allow_null: u8,
+	is_variadic: u8,
 }
 
 /// Information about the arguments of a function
 impl ArgInfo {
-	pub fn new(name: *const c_char, allow_null: c_uchar, is_variadic: c_uchar, by_reference: c_uchar) -> ArgInfo {
+	pub fn new(name: *const u8, allow_null: u8, is_variadic: u8, by_reference: u8) -> ArgInfo {
 		ArgInfo {
 			name: name,
 			class_name: std::ptr::null(),
@@ -146,23 +146,27 @@ impl Module {
 	}
 
 	/// Set a startup function
-	pub fn set_startup_func(&mut self, func: StartupFunc) {
+	pub fn set_startup_func(mut self, func: StartupFunc) -> Self {
 		self.module_startup_func = Some(func);
+		self
 	}
 
 	/// Set a shutdown function
-	pub fn set_shutdown_func(&mut self, func: ShutdownFunc) {
+	pub fn set_shutdown_func(mut self, func: ShutdownFunc) -> Self {
 		self.module_shutdown_func = Some(func);
+		self
 	}
 
 	/// Set a function to print information in PHP Info
-	pub fn set_info_func(&mut self, func: InfoFunc) {
+	pub fn set_info_func(mut self, func: InfoFunc) -> Self {
 		self.info_func = Some(func);
+		self
 	}
 
 	/// Set functions that will be available from PHP.
-	pub fn set_functions(&mut self, funcs: Box<[Function]>) {
+	pub fn set_functions(mut self, funcs: Box<[Function]>) -> Self {
 		self.functions = Box::into_raw(funcs) as *const Function;
+		self
 	}
 }
 
