@@ -13,5 +13,5 @@ build = "build.rs"
 libc = "0.2.0"
 
 [lib]
-name = "php"
+name = "solder"
 

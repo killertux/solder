@@ -4,6 +4,10 @@ use std::ffi::CString;
 use libc::*;
 use std::ptr::null;
 
+/// As the name suggests, this method is acts like a PHP echo
+/// ```
+/// php_echo("hello world");
+/// ```
 pub fn php_echo(message: &str) {
     let c_message = CString::new(message).unwrap();
     unsafe {
@@ -11,6 +15,30 @@ pub fn php_echo(message: &str) {
     }
 }
 
+/// This macro parses all parameters passed to function. Currently, there is a limit of 5 parameters.
+/// If you try to get more parameters than what were passed to the function, PHP will emit a Warning
+/// and the excess zvals will be undefined.
+///
+/// ```
+/// use solder::zend::{ExecuteData, Zval, FromPhpZval};
+/// #[no_mangle]
+/// pub extern fn hello_world(_data: &ExecuteData, retval: &mut Zval) {
+///     let mut name_zval = Zval::new_as_null();
+///     php_parse_parameters!(&mut name_zval);
+///     let name = String::try_from(name_zval).ok().unwrap();
+///     let hello = format!("Hello {}", name);
+///     php_return!(retval, hello);
+/// }
+/// ```
+#[macro_export]
+macro_rules! php_parse_parameters {
+	($p1:expr) => {
+		[$p1].parse_parameters();
+	};
+	($p1:expr, $($rest:expr), *) => {
+		[$p1, $($rest), *].parse_parameters();
+	}
+}
 pub trait PhpParseParameters {
     fn parse_parameters(self: &mut Self);
 }
@@ -119,7 +147,7 @@ fn add_zend_value_to_zval(value: ZendValue, zval: &mut Zval) {
     unsafe {
         let zval_from_value = *value.zval;
         zval.value = zval_from_value.value;
-        zval.u1 = zval_from_value.u1;
+        zval.type_info = zval_from_value.type_info;
         zval.u2 = zval_from_value.u2;
     }
 }

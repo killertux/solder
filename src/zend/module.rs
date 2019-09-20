@@ -22,6 +22,7 @@ pub struct ArgInfo {
 	is_variadic: c_uchar,
 }
 
+/// Information about the arguments of a function
 impl ArgInfo {
 	pub fn new(name: *const c_char, allow_null: c_uchar, is_variadic: c_uchar, by_reference: c_uchar) -> ArgInfo {
 		ArgInfo {
@@ -35,6 +36,7 @@ impl ArgInfo {
 	}
 }
 
+/// Struct with the functions that will be available inside PHP
 #[repr(C)]
 pub struct Function {
 	fname: *const c_char,
@@ -45,6 +47,7 @@ pub struct Function {
 }
 
 impl Function {
+	/// Create a function without arguments
 	pub fn new(name: *const c_char, handler: HandlerFunc) -> Function {
 		Function {
 			fname: name,
@@ -55,6 +58,7 @@ impl Function {
 		}
 	}
 
+	/// Create a function with arguments
 	pub fn new_with_args(name: *const c_char, handler: HandlerFunc, args: Box<[ArgInfo]>) -> Function {
 		let num_args = args.len() as u32;
 
@@ -81,6 +85,7 @@ impl Function {
 
 pub struct INI {}
 
+/// Module represents your extension
 #[repr(C)]
 pub struct Module {
 	size: c_ushort,
@@ -110,6 +115,7 @@ pub struct Module {
 }
 
 impl Module {
+	/// Create a module with the name and version
 	pub fn new(name: *const c_char, version: *const c_char) -> Module {
 		Module {
 			size: mem::size_of::<Module>() as u16,
@@ -139,18 +145,22 @@ impl Module {
 		}
 	}
 
+	/// Set a startup function
 	pub fn set_startup_func(&mut self, func: StartupFunc) {
 		self.module_startup_func = Some(func);
 	}
 
+	/// Set a shutdown function
 	pub fn set_shutdown_func(&mut self, func: ShutdownFunc) {
 		self.module_shutdown_func = Some(func);
 	}
 
+	/// Set a function to print information in PHP Info
 	pub fn set_info_func(&mut self, func: InfoFunc) {
 		self.info_func = Some(func);
 	}
 
+	/// Set functions that will be available from PHP.
 	pub fn set_functions(&mut self, funcs: Box<[Function]>) {
 		self.functions = Box::into_raw(funcs) as *const Function;
 	}

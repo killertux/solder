@@ -41,7 +41,7 @@ extern "C" {
 #[cfg(feature = "php73")]
 pub fn create_zend_array(zval: &mut Zval) {
     unsafe {
-        zval.u1.type_info = InternalPhpTypes::ARRAY as u32;
+        zval.type_info.type_info = InternalPhpTypes::ARRAY as u32;
         zval.value.array = _zend_new_array_0();
     }
 }
