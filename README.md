@@ -57,7 +57,7 @@ To compile it, we need to add to our `.cargo/config`:
 rustflags = ["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]
 ```
 
-Than, you compile the extension using `cargo build` and load it copying it to your PHP modules dir and modifying you `php.ini`.
+Then, compile the extension using `cargo build` and load it copying it to your PHP modules dir and modifying your `php.ini`.
 
 ```
 $ cargo build && php -dextension=/src/examples/helloworld/target/debug/libhelloworld.so -a
