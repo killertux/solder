@@ -65,7 +65,7 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
 	/// Create a function with name
-	pub fn create(name: *const c_char, handler: HandlerFunc) -> Self {
+	pub fn new(name: *const c_char, handler: HandlerFunc) -> Self {
 		FunctionBuilder {
 			function: Function {
 				fname: name,
@@ -139,7 +139,7 @@ pub struct ModuleBuilder {
 
 impl ModuleBuilder {
 	/// Create a module with name and version
-	pub fn create(name: *const c_char, version: *const c_char) -> ModuleBuilder {
+	pub fn new(name: *const c_char, version: *const c_char) -> ModuleBuilder {
 		ModuleBuilder {
 			module: Module {
 				size: mem::size_of::<Module>() as u16,
