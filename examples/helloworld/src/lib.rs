@@ -1,7 +1,6 @@
 extern crate libc;
 extern crate solder;
 
-use libc::*;
 use solder::*;
 use solder::zend::*;
 use solder::info::*;
@@ -15,18 +14,14 @@ pub extern fn php_module_info() {
 
 #[no_mangle]
 pub extern fn get_module() -> *mut zend::Module {
-    let entry = Module::new(c_str!("hello_world"), c_str!("0.1.0-dev"))
-        .set_info_func(php_module_info)
-        .set_functions(
-            Box::new([
-                Function::new_with_args(
-                    c_str!("hello_world"),
-                    hello_world,
-                    Box::new([ArgInfo::new(c_str!("name"), 0, 0, 0)])
-                ),
-                Function::end()
-            ]));
-    Box::into_raw(Box::new(entry))
+    let function = FunctionBuilder::create(c_str!("hello"), hello_world)
+        .with_arg(ArgInfo::new(c_str!("name"), 0, 0, 0))
+        .build();
+    ModuleBuilder::create(c_str!("hello_world"), c_str!("0.1.0-dev"))
+        .with_info_function(php_module_info)
+        .with_function(function)
+        .build()
+        .into_raw()
 }
 
 

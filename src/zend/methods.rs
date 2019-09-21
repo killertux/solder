@@ -1,7 +1,6 @@
 use super::internal_php_methods::*;
 use super::types::*;
 use std::ffi::CString;
-use libc::*;
 
 /// As the name suggests, this method is acts like a PHP echo
 /// ```

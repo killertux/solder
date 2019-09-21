@@ -14,17 +14,17 @@ type HandlerFunc = extern fn (execute_data: &ExecuteData, retval: &mut Zval);
 
 #[repr(C)]
 pub struct ArgInfo {
-	name: *const u8,
-	class_name: *const u8,
-	type_hint: u8,
-	pass_by_reference: u8,
-	allow_null: u8,
-	is_variadic: u8,
+	name: *const c_char,
+	class_name: *const c_char,
+	type_hint: c_char,
+	pass_by_reference: c_char,
+	allow_null: c_char,
+	is_variadic: c_char,
 }
 
 /// Information about the arguments of a function
 impl ArgInfo {
-	pub fn new(name: *const u8, allow_null: u8, is_variadic: u8, by_reference: u8) -> ArgInfo {
+	pub fn new(name: *const c_char, allow_null: c_char, is_variadic: c_char, by_reference: c_char) -> ArgInfo {
 		ArgInfo {
 			name: name,
 			class_name: std::ptr::null(),
@@ -41,36 +41,12 @@ impl ArgInfo {
 pub struct Function {
 	fname: *const c_char,
 	handler: Option<HandlerFunc>,
-	arg_info: *const  ArgInfo,
+	arg_info: *const ArgInfo,
 	num_args: u32,
 	flags: u32,
 }
 
 impl Function {
-	/// Create a function without arguments
-	pub fn new(name: *const c_char, handler: HandlerFunc) -> Function {
-		Function {
-			fname: name,
-			handler: Some(handler),
-			arg_info: std::ptr::null(),
-			num_args: 0,
-			flags: 0,
-		}
-	}
-
-	/// Create a function with arguments
-	pub fn new_with_args(name: *const c_char, handler: HandlerFunc, args: Box<[ArgInfo]>) -> Function {
-		let num_args = args.len() as u32;
-
-		Function {
-			fname: name,
-			handler: Some(handler),
-			arg_info: Box::into_raw(args) as *const ArgInfo,
-			num_args: num_args - 1,
-			flags: 0,
-		}
-	}
-
 	pub fn end() -> Function {
 		Function {
 			fname: std::ptr::null(),
@@ -80,7 +56,43 @@ impl Function {
 			flags: 0,
 		}
 	}
+}
 
+pub struct FunctionBuilder {
+	function: Function,
+	args: Vec<ArgInfo>,
+}
+
+impl FunctionBuilder {
+	/// Create a function with name
+	pub fn create(name: *const c_char, handler: HandlerFunc) -> Self {
+		FunctionBuilder {
+			function: Function {
+				fname: name,
+				handler: Some(handler),
+				arg_info: std::ptr::null(),
+				num_args: 0,
+				flags: 0,
+			},
+			args: Vec::new(),
+		}
+	}
+
+	/// Add an argument to the function
+	pub fn with_arg(mut self, arg: ArgInfo) -> Self {
+		self.args.push(arg);
+		self
+	}
+
+	/// Build the function
+	pub fn build(mut self)-> Function {
+		if self.args.is_empty() {
+			return self.function;
+		}
+		self.function.num_args = self.args.len() as u32 - 1;
+		self.function.arg_info = Box::into_raw(self.args.into_boxed_slice()) as *mut ArgInfo;
+		self.function
+	}
 }
 
 pub struct INI {}
@@ -115,58 +127,78 @@ pub struct Module {
 }
 
 impl Module {
-	/// Create a module with the name and version
-	pub fn new(name: *const c_char, version: *const c_char) -> Module {
-		Module {
-			size: mem::size_of::<Module>() as u16,
-			zend_api: env!("PHP_API_VERSION").parse::<u32>().unwrap(),
-			zend_debug: 0,
-			zts: 0,
-			ini_entry: std::ptr::null(),
-			deps: std::ptr::null(),
-			name: name,
-			functions: std::ptr::null(),
-			module_startup_func: None,
-			module_shutdown_func: None,
-			request_startup_func: None,
-			request_shutdown_func: None,
-			info_func: None,
-			version: version,
-			globals_size: 0,
-			globals_ptr: std::ptr::null(),
-			globals_ctor: None,
-			globals_dtor: None,
-			post_deactivate_func: None,
-			module_started: 0,
-			type_: 0,
-			handle: std::ptr::null(),
-			module_number: 0,
-			build_id: c_str!(env!("PHP_EXTENSION_BUILD")),
+	pub fn into_raw(self) -> *mut Self {
+		Box::into_raw(Box::new(self))
+	}
+}
+
+pub struct ModuleBuilder {
+	module: Module,
+	functions: Vec<Function>,
+}
+
+impl ModuleBuilder {
+	/// Create a module with name and version
+	pub fn create(name: *const c_char, version: *const c_char) -> ModuleBuilder {
+		ModuleBuilder {
+			module: Module {
+				size: mem::size_of::<Module>() as u16,
+				zend_api: env!("PHP_API_VERSION").parse::<u32>().unwrap(),
+				zend_debug: 0,
+				zts: 0,
+				ini_entry: std::ptr::null(),
+				deps: std::ptr::null(),
+				name: name,
+				functions: std::ptr::null(),
+				module_startup_func: None,
+				module_shutdown_func: None,
+				request_startup_func: None,
+				request_shutdown_func: None,
+				info_func: None,
+				version: version,
+				globals_size: 0,
+				globals_ptr: std::ptr::null(),
+				globals_ctor: None,
+				globals_dtor: None,
+				post_deactivate_func: None,
+				module_started: 0,
+				type_: 0,
+				handle: std::ptr::null(),
+				module_number: 0,
+				build_id: c_str!(env!("PHP_EXTENSION_BUILD")),
+			},
+			functions: Vec::new(),
 		}
 	}
 
 	/// Set a startup function
-	pub fn set_startup_func(mut self, func: StartupFunc) -> Self {
-		self.module_startup_func = Some(func);
+	pub fn with_startup_function(mut self, func: StartupFunc) -> Self {
+		self.module.module_startup_func = Some(func);
 		self
 	}
 
 	/// Set a shutdown function
-	pub fn set_shutdown_func(mut self, func: ShutdownFunc) -> Self {
-		self.module_shutdown_func = Some(func);
+	pub fn with_shutdown_function(mut self, func: ShutdownFunc) -> Self {
+		self.module.module_shutdown_func = Some(func);
 		self
 	}
 
 	/// Set a function to print information in PHP Info
-	pub fn set_info_func(mut self, func: InfoFunc) -> Self {
-		self.info_func = Some(func);
+	pub fn with_info_function(mut self, func: InfoFunc) -> Self {
+		self.module.info_func = Some(func);
 		self
 	}
 
 	/// Set functions that will be available from PHP.
-	pub fn set_functions(mut self, funcs: Box<[Function]>) -> Self {
-		self.functions = Box::into_raw(funcs) as *const Function;
+	pub fn with_function(mut self, function: Function) -> Self {
+		self.functions.push(function);
 		self
+	}
+
+	pub fn build(mut self) -> Module {
+		self.functions.push(Function::end());
+		self.module.functions = Box::into_raw(self.functions.into_boxed_slice()) as *const Function;
+		self.module
 	}
 }
 
