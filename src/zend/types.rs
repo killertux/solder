@@ -1,6 +1,8 @@
 use super::internal_php_methods::*;
 use std::os::raw::c_void;
 use std::ptr::null;
+use std::ffi::{CString, CStr};
+use std::slice;
 
 pub struct ExecuteData {}
 pub struct ModuleDep {}
