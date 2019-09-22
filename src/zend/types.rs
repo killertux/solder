@@ -1,5 +1,3 @@
-use std::ffi::{CString, CStr};
-use std::slice;
 use super::internal_php_methods::*;
 use std::os::raw::c_void;
 use std::ptr::null;

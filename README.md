@@ -1,6 +1,6 @@
 ### Solder your Rust into PHP
 
-This library tries to help you improve your PHP application using extensions written in Rust.
+This library tries to help you improve your PHP application using extensions written in Rust. It started as a fork from `php-rs`.
 
 The idea is to be able to write code purely in rust, compile it using cargo and load the library direct into PHP.
 
@@ -12,7 +12,6 @@ Example:
 extern crate libc;
 extern crate solder;
 
-use libc::*;
 use solder::*;
 use solder::zend::*;
 use solder::info::*;
@@ -26,18 +25,14 @@ pub extern fn php_module_info() {
 
 #[no_mangle]
 pub extern fn get_module() -> *mut zend::Module {
-    let mut entry = Box::new(zend::Module::new(
-        c_str!("hello_world"),
-        c_str!("0.1.0-dev"),
-    ));
-
-    entry.set_info_func(php_module_info);
-
-    let args = Box::new([ArgInfo::new(c_str!("name"), 0, 0, 0)]);
-    let funcs = Box::new([Function::new_with_args(c_str!("hello_world"), hello_world, args), Function::end(), ]);
-    entry.set_functions(funcs);
-
-    Box::into_raw(entry)
+    let function = FunctionBuilder::new(c_str!("hello_world"), hello_world)
+        .with_arg(ArgInfo::new(c_str!("name"), 0, 0, 0))
+        .build();
+    ModuleBuilder::new(c_str!("hello_world"), c_str!("0.1.0-dev"))
+        .with_info_function(php_module_info)
+        .with_function(function)
+        .build()
+        .into_raw()
 }
 
 
@@ -60,7 +55,7 @@ rustflags = ["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]
 Then, compile the extension using `cargo build` and load it copying it to your PHP modules dir and modifying your `php.ini`.
 
 ```
-$ cargo build && php -dextension=/src/examples/helloworld/target/debug/libhelloworld.so -a
+$ cargo build --release && php -dextension=$(pwd)/target/debug/libhelloworld.so -a
    Compiling solder v0.1.0 (/src)
    Compiling helloworld v0.1.0 (/src/examples/helloworld)
     Finished dev [unoptimized + debuginfo] target(s) in 5.93s

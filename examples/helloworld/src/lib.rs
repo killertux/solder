@@ -14,7 +14,7 @@ pub extern fn php_module_info() {
 
 #[no_mangle]
 pub extern fn get_module() -> *mut zend::Module {
-    let function = FunctionBuilder::new(c_str!("hello"), hello_world)
+    let function = FunctionBuilder::new(c_str!("hello_world"), hello_world)
         .with_arg(ArgInfo::new(c_str!("name"), 0, 0, 0))
         .build();
     ModuleBuilder::new(c_str!("hello_world"), c_str!("0.1.0-dev"))
