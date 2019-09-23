@@ -3,6 +3,7 @@ use std::os::raw::c_void;
 use std::ptr::null;
 use std::ffi::{CString, CStr};
 use std::slice;
+use super::methods::php_echo;
 
 pub struct ExecuteData {}
 pub struct ModuleDep {}
@@ -19,6 +20,7 @@ pub enum InternalPhpTypes {
 	DOUBLE = 5,
 	STRING = 6,
 	ARRAY = 7,
+	INDIRECT = 13,
 }
 
 #[repr(C)]
@@ -137,24 +139,21 @@ impl Zval {
 	}
 
 	/// Returns if a zval is a integer (i64)
-	pub fn is_integer(self: &Self) -> bool {
-		self.type_info.is_from_type(InternalPhpTypes::NULL)
-	}
+	pub fn is_integer(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::LONG) }
 
 	/// Returns if a zval is a float (f64)
-	pub fn is_float(self: &Self) -> bool {
-		self.type_info.is_from_type(InternalPhpTypes::NULL)
-	}
+	pub fn is_float(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::DOUBLE) }
 
 	/// Returns if a zval is string
 	pub fn is_string(self: &Self) -> bool {
-		self.type_info.is_from_type(InternalPhpTypes::NULL)
+		self.type_info.is_from_type(InternalPhpTypes::STRING)
 	}
 
 	/// Returns if a zval is array (Vec<>)
-	pub fn is_array(self: &Self) -> bool {
-		self.type_info.is_from_type(InternalPhpTypes::NULL)
-	}
+	pub fn is_array(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::ARRAY) }
+
+	/// Returns if a zval is indirect. Indirect is an internal type.
+	fn is_indirect(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::INDIRECT) }
 }
 
 /// Returns a value from you function back to PHP.
@@ -281,6 +280,7 @@ pub trait FromPhpZval: Sized {
 
 impl FromPhpZval for bool {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
+		let zval = handle_indirect(zval);
 		if zval.type_info.is_from_type(InternalPhpTypes::TRUE) {
 			return Ok(true);
 		}
@@ -293,6 +293,7 @@ impl FromPhpZval for bool {
 
 impl FromPhpZval for i64 {
 	fn try_from(zval: Zval) -> Result<Self,PhpTypeConversionError> {
+		let zval = handle_indirect(zval);
 		if zval.type_info.is_from_type(InternalPhpTypes::LONG) {
 			return Ok(unsafe {zval.value.long_value});
 		}
@@ -302,6 +303,7 @@ impl FromPhpZval for i64 {
 
 impl FromPhpZval for f64 {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
+		let zval = handle_indirect(zval);
 		if zval.type_info.is_from_type(InternalPhpTypes::DOUBLE) {
 			return Ok(unsafe {zval.value.double_value});
 		}
@@ -311,7 +313,8 @@ impl FromPhpZval for f64 {
 
 impl FromPhpZval for String {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		if !zval.type_info.is_from_type(InternalPhpTypes::STRING) {
+		let zval = handle_indirect(zval);
+		if !zval.is_string() {
 			return Err(PhpTypeConversionError::NotString(zval.type_info));
 		}
 		unsafe {
@@ -321,7 +324,7 @@ impl FromPhpZval for String {
 			return match c_str.to_str() {
 				Ok(str) => Ok(str.to_string()),
 				//Not a very good error.
-				Err(_) => Err(PhpTypeConversionError::NotString(zval.type_info)),
+				Err(_) => Err(PhpTypeConversionError::NotString(TypeInfoUnion{type_info: 666})),
 			};
 		}
 	}
@@ -329,7 +332,8 @@ impl FromPhpZval for String {
 
 impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		if !zval.type_info.is_from_type(InternalPhpTypes::ARRAY) {
+		let zval = handle_indirect(zval);
+		if !zval.is_array() {
 			return Err(PhpTypeConversionError::NotArray(zval.type_info));
 		}
 		let mut returner: Vec<T> = Vec::new();
@@ -342,4 +346,13 @@ impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 		}
 		Ok(returner)
 	}
+}
+
+fn handle_indirect(zval: Zval) -> Zval {
+	if zval.is_indirect() {
+		php_echo("indirect\n");
+//		php_echo(format!("t - {}\n", unsafe{(*zval.value.zval).type_info.type_info}).as_str());
+		return unsafe{*zval.value.zval};
+	}
+	zval
 }
