@@ -3,7 +3,6 @@ use std::os::raw::c_void;
 use std::ptr::null;
 use std::ffi::{CString, CStr};
 use std::slice;
-use super::methods::php_echo;
 
 pub struct ExecuteData {}
 pub struct ModuleDep {}
@@ -170,6 +169,7 @@ impl Zval {
 macro_rules! php_return {
     ($retval:expr, $value:expr) => {
         (*$retval) = Zval::new($value);
+        return;
     };
 }
 
@@ -337,8 +337,8 @@ impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 			return Err(PhpTypeConversionError::NotArray(zval.type_info));
 		}
 		let mut returner: Vec<T> = Vec::new();
-		let table_size = unsafe {(*zval.value.array).n_table_size};
-		for index in 0..table_size {
+		let num_of_elements_used = unsafe {(*zval.value.array).n_num_used};
+		for index in 0..num_of_elements_used {
 			let cloned_value = unsafe {(*(*zval.value.array).array_data.offset(index as isize)).value.clone()};
 			if !cloned_value.type_info.is_from_type(InternalPhpTypes::UNDEF) {
 				returner.push(T::try_from(cloned_value)?);
@@ -350,8 +350,6 @@ impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 
 fn handle_indirect(zval: Zval) -> Zval {
 	if zval.is_indirect() {
-		php_echo("indirect\n");
-//		php_echo(format!("t - {}\n", unsafe{(*zval.value.zval).type_info.type_info}).as_str());
 		return unsafe{*zval.value.zval};
 	}
 	zval

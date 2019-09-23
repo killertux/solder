@@ -1,8 +1,8 @@
 [package]
 name = "solder"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Bruno Clemente <bruno.canguru@hotmail.com>"]
-keywords = ["php", "php-extension"]
+keywords = ["php", "php-extension", "ffi"]
 description = "A library to build PHP extensions using Rust."
 license = "MIT"
 readme = "README.md"
