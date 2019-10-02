@@ -13,6 +13,25 @@ pub fn php_echo(message: &str) {
     }
 }
 
+/// Executes a callable. The first parameter is the Zval with the callable. The second parameter
+/// is an array containing the callable parameters. It returns the callable return.
+///
+/// This method does not checks if the callable is an actually callable. If you pass a Zval that is
+/// not a callable PHP may throw an warning.
+/// ```
+/// use solder::zend::execute_callable;
+/// let mut callable = Zval::new_as_null();
+/// php_parse_parameters!(&mut callable);
+/// execute_callable(callable, &mut [Zval::from("Hello World")]);
+/// ```
+pub fn execute_callable(callable: &mut Zval, params: &mut [Zval]) -> Zval {
+    let mut returner = Zval::new_as_null();
+    unsafe{
+        _call_user_function_ex(callable, &mut Zval::from(zend_get_callable_name(callable)), &mut returner, params.len() as u32, params.as_mut_ptr(), 0)
+    };
+    returner
+}
+
 /// This macro parses all parameters passed to function. Currently, there is a limit of 5 parameters.
 /// If you try to get more parameters than what were passed to the function, PHP will emit a Warning
 /// and the excess zvals will be undefined.

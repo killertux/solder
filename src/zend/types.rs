@@ -246,6 +246,16 @@ impl<T: Clone> From<Vec<T>> for Zval
 	}
 }
 
+impl From<*mut ZendString> for Zval {
+	fn from(string: *mut ZendString) -> Self {
+		Zval {
+			value: ZendValue{string},
+			type_info: TypeInfoUnion{type_info: InternalPhpTypes::STRING as u32},
+			u2: U2{next: 0},
+		}
+	}
+}
+
 /// This clone is not safe because we are copying the pointers and not the values.
 /// The PHP GC will (probably) not deallocate this parameters as long as we stay single threaded.
 /// But, I do need to improve this implementation
