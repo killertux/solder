@@ -1,6 +1,6 @@
 [package]
 name = "solder"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Bruno Clemente <bruno.canguru@hotmail.com>"]
 keywords = ["php", "php-extension", "ffi"]
 description = "A library to build PHP extensions using Rust."

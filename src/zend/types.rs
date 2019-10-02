@@ -2,7 +2,8 @@ use super::internal_php_methods::*;
 use std::os::raw::c_void;
 use std::ptr::null;
 use std::ffi::{CString, CStr};
-use std::slice;
+use std::{slice, fmt};
+use std::fmt::{Debug, Formatter};
 
 pub struct ExecuteData {}
 pub struct ModuleDep {}
@@ -282,6 +283,18 @@ pub enum PhpTypeConversionError {
 	NotFloat(TypeInfoUnion),
 	NotString(TypeInfoUnion),
 	NotArray(TypeInfoUnion),
+}
+
+impl Debug for PhpTypeConversionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            PhpTypeConversionError::NotBool(type_info) => write!(f, "Not a bool. Type info is {}", unsafe{type_info.type_info}),
+            PhpTypeConversionError::NotInteger(type_info) => write!(f, "Not a integer. Type info is {}", unsafe{type_info.type_info}),
+            PhpTypeConversionError::NotFloat(type_info) => write!(f, "Not a float. Type info is {}", unsafe{type_info.type_info}),
+            PhpTypeConversionError::NotString(type_info) => write!(f, "Not a string. Type info is {}", unsafe{type_info.type_info}),
+            PhpTypeConversionError::NotArray(type_info) => write!(f, "Not a array. Type info is {}", unsafe{type_info.type_info}),
+        }
+    }
 }
 
 pub trait FromPhpZval: Sized {
