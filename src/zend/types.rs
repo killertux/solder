@@ -4,6 +4,7 @@ use std::ptr::null;
 use std::ffi::{CString, CStr};
 use std::{slice, fmt};
 use std::fmt::{Debug, Formatter};
+use crate::zend::php_echo;
 
 pub struct ExecuteData {}
 pub struct ModuleDep {}
@@ -20,6 +21,7 @@ pub enum InternalPhpTypes {
 	DOUBLE = 5,
 	STRING = 6,
 	ARRAY = 7,
+	REFERENCE = 10,
 	INDIRECT = 13,
 }
 
@@ -153,7 +155,7 @@ impl Zval {
 	pub fn is_array(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::ARRAY) }
 
 	/// Returns if a zval is indirect. Indirect is an internal type.
-	fn is_indirect(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::INDIRECT) }
+	fn is_indirect(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::INDIRECT) || self.type_info.is_from_type(InternalPhpTypes::REFERENCE) }
 }
 
 /// Returns a value from you function back to PHP.
@@ -270,6 +272,14 @@ impl Clone for Zval {
 	}
 }
 
+impl Drop for Zval {
+	fn drop(&mut self) {
+		if self.is_string() {
+			free_zend_string(unsafe{self.value.string});
+		}
+	}
+}
+
 impl TypeInfoUnion {
 	fn is_from_type(self: &Self, php_type: InternalPhpTypes) -> bool {
 		unsafe {self.type_info & 0x000F == php_type as u32}
@@ -340,16 +350,21 @@ impl FromPhpZval for String {
 		if !zval.is_string() {
 			return Err(PhpTypeConversionError::NotString(zval.type_info));
 		}
-		unsafe {
-			let c_str = CStr::from_bytes_with_nul_unchecked(
+		let c_str = unsafe {
+			 CStr::from_bytes_with_nul_unchecked(
 				slice::from_raw_parts((*zval.value.string).value.as_ptr(), (*zval.value.string).len as usize + 1)
-			);
-			return match c_str.to_str() {
-				Ok(str) => Ok(str.to_string()),
-				//Not a very good error.
-				Err(_) => Err(PhpTypeConversionError::NotString(TypeInfoUnion{type_info: 666})),
-			};
-		}
+			)
+		};
+		return match c_str.to_str() {
+			Ok(str) => {
+				let string = str.to_string();
+				unsafe{free_zend_string(zval.value.string)};
+				Ok(string)
+			},
+			//Not a very good error.
+			Err(_) => Err(PhpTypeConversionError::NotString(TypeInfoUnion{type_info: 666})),
+		};
+
 	}
 }
 
@@ -376,4 +391,31 @@ fn handle_indirect(zval: Zval) -> Zval {
 		return unsafe{*zval.value.zval};
 	}
 	zval
+}
+
+pub fn free_zend_string(zend_string: *mut ZendString) {
+	let ref_counted = unsafe{&(*zend_string).gc};
+	if !check_gc_flags(ref_counted, 6) {
+		if (zend_gc_delref(unsafe{&mut (*zend_string).gc}) == 0) {
+			if check_gc_flags(ref_counted, 7) {
+				unsafe{free(zend_string as *mut c_void)}
+				return;
+			} else {
+				unsafe{_efree(zend_string as *mut c_void)}
+				return;
+			};
+		}
+	}
+}
+
+fn check_gc_flags(ref_counted: &ZendRefCounted, position: u32) -> bool {
+	((ref_counted.type_info & 0x000003f0) >> 3) & (1 << position) != 0
+}
+
+fn zend_gc_delref(ref_counted: &mut ZendRefCounted) -> u32 {
+	if ref_counted.ref_count == 0 {
+		return 0;
+	}
+	ref_counted.ref_count -= 1;
+	return ref_counted.ref_count
 }

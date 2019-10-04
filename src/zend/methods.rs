@@ -27,7 +27,9 @@ pub fn php_echo(message: &str) {
 pub fn execute_callable(callable: &mut Zval, params: &mut [Zval]) -> Zval {
     let mut returner = Zval::new_as_null();
     unsafe{
-        _call_user_function_ex(callable, &mut Zval::from(zend_get_callable_name(callable)), &mut returner, params.len() as u32, params.as_mut_ptr(), 0)
+        let mut callable_name = Zval::from(zend_get_callable_name(callable));
+        _call_user_function_ex(callable, &mut callable_name, &mut returner, params.len() as u32, params.as_mut_ptr(), 0);
+        free_zend_string(callable_name.value.string);
     };
     returner
 }
