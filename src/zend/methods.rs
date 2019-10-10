@@ -13,23 +13,44 @@ pub fn php_echo(message: &str) {
     }
 }
 
-/// Executes a callable. The first parameter is the Zval with the callable. The second parameter
-/// is an array containing the callable parameters. It returns the callable return.
+/// Executes a closure. The first parameter is the Zval with the closure. The second parameter
+/// is an array containing the parameters. It returns the closure return.
 ///
-/// This method does not checks if the callable is an actually callable. If you pass a Zval that is
-/// not a callable PHP may throw an warning.
+/// This method does not checks if the closure is an actually closure. If you pass a Zval that is
+/// not a closure PHP may throw an error.
 /// ```
-/// use solder::zend::execute_callable;
-/// let mut callable = Zval::new_as_null();
-/// php_parse_parameters!(&mut callable);
-/// execute_callable(callable, &mut [Zval::from("Hello World")]);
+/// use solder::zend::execute_closure;
+/// let mut closure = Zval::new_as_null();
+/// php_parse_parameters!(&mut closure);
+/// execute_closure(closure, &mut [Zval::from("Hello World")]);
 /// ```
-pub fn execute_callable(callable: &mut Zval, params: &mut [Zval]) -> Zval {
+pub fn execute_closure(callable: &mut Zval, params: &mut [Zval]) -> Zval {
     let mut returner = Zval::new_as_null();
     unsafe{
-        _call_user_function_ex(callable, &mut Zval::from(zend_get_callable_name(callable)), &mut returner, params.len() as u32, params.as_mut_ptr(), 0)
+        let mut callable_name = Zval::from(zend_get_callable_name(callable));
+        _call_user_function_ex(callable, &mut callable_name, &mut returner, params.len() as u32, params.as_mut_ptr(), 0);
+        free_zend_string(callable_name.value.string);
     };
     returner
+}
+
+/// Macro to simplify executing a closure. The first parameter is the closure and the others are the
+/// parameters. It will return the closure return
+///
+/// ```
+/// use solder::zend::execute_closure;
+/// let mut closure = Zval::new_as_null();
+/// php_parse_parameters!(&mut closure);
+/// let message = String::try_from(execute_closure!(closure, "Hello ", "World", 5)).expect("Error");
+/// ```
+#[macro_export]
+macro_rules! execute_closure{
+	($p1:expr, $p2:expr) => {
+		execute_closure($p1, &mut [Zval::from($p2)]);
+	};
+	($p1:expr, $p2:expr, $($rest:expr), *) => {
+	    execute_closure($p1, &mut [Zval::from($p2), $(Zval::from($rest)), *]);
+	}
 }
 
 /// This macro parses all parameters passed to function. Currently, there is a limit of 5 parameters.

@@ -7,6 +7,8 @@ extern "C" {
     pub fn php_printf(format: *const c_char , ...) -> size_t;
     pub fn _call_user_function_ex(object: *mut Zval, function_name: *mut Zval, retval_ptr: *mut Zval, param_count: u32, params: *mut Zval, no_separation: i32) -> i32;
     pub fn zend_get_callable_name(callable: *mut Zval) -> *mut ZendString;
+    pub fn _efree(ptr: *mut c_void);
+    pub fn free(ptr: *mut c_void);
 }
 
 #[cfg(feature = "php72")]
