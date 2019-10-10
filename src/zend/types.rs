@@ -25,6 +25,7 @@ pub enum InternalPhpTypes {
 	INDIRECT = 13,
 }
 
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub union ZendValue {
 	pub long_value: i64,
@@ -35,14 +36,10 @@ pub union ZendValue {
 	pub void: *mut c_void,
 }
 
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub union TypeInfoUnion {
 	pub type_info: u32,
-}
-
-#[repr(C)]
-pub union U2 {
-	pub next: u32,
 }
 
 #[repr(C)]
@@ -108,7 +105,7 @@ impl ZendArray {
 pub struct Zval {
 	pub value: ZendValue,
 	pub type_info: TypeInfoUnion,
-	pub u2: U2,
+	pub u2: u32,
 }
 
 impl Zval {
@@ -125,7 +122,7 @@ impl Zval {
 		Zval {
 			value: ZendValue {void: null::<c_void>() as *mut libc::c_void},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::NULL as u32},
-			u2: U2{next: 0},
+			u2: 0,
 		}
 	}
 
@@ -156,6 +153,13 @@ impl Zval {
 
 	/// Returns if a zval is indirect. Indirect is an internal type.
 	fn is_indirect(self: &Self) -> bool { self.type_info.is_from_type(InternalPhpTypes::INDIRECT) || self.type_info.is_from_type(InternalPhpTypes::REFERENCE) }
+
+	fn handle_indirect(self) -> Zval {
+		if self.is_indirect() {
+			return unsafe{Zval::from(self.value.zval)};
+		}
+		self
+	}
 }
 
 /// Returns a value from you function back to PHP.
@@ -181,7 +185,7 @@ impl From<&str> for Zval {
 		Zval {
 			value: ZendValue{string: ZendString::new_as_pointer(rust_str)},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::STRING as u32},
-			u2: U2{next: 0}
+			u2: 0,
 		}
 	}
 }
@@ -197,7 +201,7 @@ impl From<i64> for Zval {
 		Zval {
 			value: ZendValue{long_value: number},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::LONG as u32},
-			u2: U2{next: 0}
+			u2: 0,
 		}
 	}
 }
@@ -207,7 +211,7 @@ impl From<i32> for Zval {
 		Zval {
 			value: ZendValue{long_value: number as i64},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::LONG as u32},
-			u2: U2{next: 0}
+			u2: 0,
 		}
 	}
 }
@@ -217,7 +221,7 @@ impl From<u32> for Zval {
 		Zval {
 			value: ZendValue{long_value: number as i64},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::LONG as u32},
-			u2: U2{next: 0}
+			u2: 0,
 		}
 	}
 }
@@ -227,7 +231,17 @@ impl From<usize> for Zval {
 		Zval {
 			value: ZendValue{long_value: size as i64},
 			type_info: TypeInfoUnion {type_info: InternalPhpTypes::LONG as u32},
-			u2: U2{next: 0}
+			u2: 0,
+		}
+	}
+}
+
+impl From<f64> for Zval {
+	fn from(number: f64) -> Self {
+		Zval {
+			value: ZendValue{double_value: number},
+			type_info: TypeInfoUnion {type_info: InternalPhpTypes::DOUBLE as u32},
+			u2: 0,
 		}
 	}
 }
@@ -254,7 +268,19 @@ impl From<*mut ZendString> for Zval {
 		Zval {
 			value: ZendValue{string},
 			type_info: TypeInfoUnion{type_info: InternalPhpTypes::STRING as u32},
-			u2: U2{next: 0},
+			u2: 0,
+		}
+	}
+}
+
+impl From<*mut Zval> for Zval {
+	fn from(zval: *mut Zval) -> Self {
+		unsafe {
+			Zval {
+				value: (*zval).value,
+				type_info: (*zval).type_info,
+				u2: (*zval).u2,
+			}
 		}
 	}
 }
@@ -267,11 +293,12 @@ impl Clone for Zval {
 		Zval {
 			value: ZendValue{long_value: unsafe{self.value.long_value}},
 			type_info: TypeInfoUnion {type_info: unsafe{self.type_info.type_info}},
-			u2: U2{next: unsafe{self.u2.next}},
+			u2: self.u2
 		}
 	}
 }
 
+/// We still need to handle arrays and garbage collected Zvals
 impl Drop for Zval {
 	fn drop(&mut self) {
 		if self.is_string() {
@@ -313,7 +340,7 @@ pub trait FromPhpZval: Sized {
 
 impl FromPhpZval for bool {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		let zval = handle_indirect(zval);
+		let zval = zval.handle_indirect();
 		if zval.type_info.is_from_type(InternalPhpTypes::TRUE) {
 			return Ok(true);
 		}
@@ -326,7 +353,7 @@ impl FromPhpZval for bool {
 
 impl FromPhpZval for i64 {
 	fn try_from(zval: Zval) -> Result<Self,PhpTypeConversionError> {
-		let zval = handle_indirect(zval);
+		let zval = zval.handle_indirect();
 		if zval.type_info.is_from_type(InternalPhpTypes::LONG) {
 			return Ok(unsafe {zval.value.long_value});
 		}
@@ -336,7 +363,7 @@ impl FromPhpZval for i64 {
 
 impl FromPhpZval for f64 {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		let zval = handle_indirect(zval);
+		let zval = zval.handle_indirect();
 		if zval.type_info.is_from_type(InternalPhpTypes::DOUBLE) {
 			return Ok(unsafe {zval.value.double_value});
 		}
@@ -346,7 +373,7 @@ impl FromPhpZval for f64 {
 
 impl FromPhpZval for String {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		let zval = handle_indirect(zval);
+		let zval = zval.handle_indirect();
 		if !zval.is_string() {
 			return Err(PhpTypeConversionError::NotString(zval.type_info));
 		}
@@ -356,11 +383,7 @@ impl FromPhpZval for String {
 			)
 		};
 		return match c_str.to_str() {
-			Ok(str) => {
-				let string = str.to_string();
-				unsafe{free_zend_string(zval.value.string)};
-				Ok(string)
-			},
+			Ok(str) => Ok(str.to_string()),
 			//Not a very good error.
 			Err(_) => Err(PhpTypeConversionError::NotString(TypeInfoUnion{type_info: 666})),
 		};
@@ -370,7 +393,7 @@ impl FromPhpZval for String {
 
 impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 	fn try_from(zval: Zval) -> Result<Self, PhpTypeConversionError> {
-		let zval = handle_indirect(zval);
+		let zval = zval.handle_indirect();
 		if !zval.is_array() {
 			return Err(PhpTypeConversionError::NotArray(zval.type_info));
 		}
@@ -386,17 +409,10 @@ impl <T: FromPhpZval> FromPhpZval for Vec<T> {
 	}
 }
 
-fn handle_indirect(zval: Zval) -> Zval {
-	if zval.is_indirect() {
-		return unsafe{*zval.value.zval};
-	}
-	zval
-}
-
 pub fn free_zend_string(zend_string: *mut ZendString) {
 	let ref_counted = unsafe{&(*zend_string).gc};
 	if !check_gc_flags(ref_counted, 6) {
-		if (zend_gc_delref(unsafe{&mut (*zend_string).gc}) == 0) {
+		if should_free(unsafe{&mut (*zend_string).gc}) {
 			if check_gc_flags(ref_counted, 7) {
 				unsafe{free(zend_string as *mut c_void)}
 				return;
@@ -412,10 +428,10 @@ fn check_gc_flags(ref_counted: &ZendRefCounted, position: u32) -> bool {
 	((ref_counted.type_info & 0x000003f0) >> 3) & (1 << position) != 0
 }
 
-fn zend_gc_delref(ref_counted: &mut ZendRefCounted) -> u32 {
+fn should_free(ref_counted: &mut ZendRefCounted) -> bool {
 	if ref_counted.ref_count == 0 {
-		return 0;
+		return true;
 	}
 	ref_counted.ref_count -= 1;
-	return ref_counted.ref_count
+	return ref_counted.ref_count <= 0;
 }
