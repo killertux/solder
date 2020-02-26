@@ -9,7 +9,7 @@ use std::ffi::CString;
 pub fn php_echo(message: &str) {
     let c_message = CString::new(message).unwrap();
     unsafe {
-        php_printf(c_message.as_bytes_with_nul().as_ptr() as *const i8);
+        php_printf(c_str!("%s"), c_message.as_bytes_with_nul().as_ptr() as *const i8);
     }
 }
 
