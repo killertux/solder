@@ -183,7 +183,7 @@ impl PhpParseParameters for [&mut Zval; 5] {
 
 fn add_zend_value_to_zval(value: ZendValue, zval: &mut Zval) {
     unsafe {
-        let zval_from_value = *value.zval;
+        let zval_from_value = &*value.zval;
         zval.value = zval_from_value.value;
         zval.type_info = zval_from_value.type_info;
         zval.u2 = zval_from_value.u2;
